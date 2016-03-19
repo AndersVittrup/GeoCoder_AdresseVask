@@ -22,7 +22,7 @@
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
-import processing
+from qgis.core import *
 # Initialize Qt resources from file resources.py
 import resources
 # Import the code for the dialog
@@ -157,7 +157,6 @@ class GeoCoder_AdresseVask:
         self.actions.append(action)
 
         return action
-        
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
@@ -178,35 +177,46 @@ class GeoCoder_AdresseVask:
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
-        del self.toolbar      
+        del self.toolbar
+        
+    def selectionchange(self,i):
+        self.dlg.colmCombo.clear()
+        
+        index = self.dlg.layerCombo.currentIndex()
+        layer = self.dlg.layerCombo.itemData(index)
+        for col in layer.pendingFields():
+            self.dlg.colmCombo.addItem( col.name(), col ) 
 
-    def layerCol(self, layer):
-        self.dlg.mFieldComboBox.setLayer(layer)
+
+    def geocode(self, layer, col):
+        #index_layer = self.dlg.layerCombo.currentIndex()
+        #layer = self.dlg.layerCombo.itemData(index_layer)
+        print layer
         
+        #index_col = self.dlg.colmCombo.currentIndex()
+        #col = self.dlg.colmCombo.itemData(index_col)
+        print col
         
+
     def run(self):
         """Run method that performs all the real work"""
-		
-		#connecting layerCombo with fieldCombo and setting first layer
-        vlayer = self.dlg.mMapLayerComboBox.currentLayer()
-        self.dlg.mFieldComboBox.setLayer(vlayer)
-        self.dlg.mMapLayerComboBox.layerChanged.connect(self.layerCol)
-
         # show the dialog
         self.dlg.show()
         # Run the dialog event loop
         result = self.dlg.exec_()
-        # See if OK was pressed
+		QgsMapLayerComboBox
         
+        self.dlg.layerCombo.clear()
+        self.dlg.layerCombo.currentIndexChanged.connect(self.selectionchange)
+        layers = QgsMapLayerRegistry.instance().mapLayers().values()
+        for layer in layers:
+            if layer.type() == QgsMapLayer.VectorLayer:
+                self.dlg.layerCombo.addItem( layer.name(), layer )
+                
+        
+        # See if OK was pressed
         if result:
+            print "ok"
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
-			
-            layer = self.dlg.mMapLayerComboBox.currentLayer()
-            layer_field_index = layer.fieldNameIndex(self.dlg.mFieldComboBox.currentField())
-
-            # prepare
-            features = processing.features(layer)
-
-            for f in features:
-                print f.attributes()[layer_field_index]
+            self.geocode(self.dlg.layerCombo.itemData(self.dlg.layerCombo.currentIndex()), self.dlg.colmCombo.itemData(self.dlg.colmCombo.currentIndex()))
