@@ -21,7 +21,7 @@
  ***************************************************************************/
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
-from PyQt4.QtGui import QAction, QIcon
+from PyQt4.QtGui import QAction, QIcon, QFileDialog, QApplication
 import processing
 # Initialize Qt resources from file resources.py
 import resources
@@ -68,6 +68,12 @@ class GeoCoder_AdresseVask:
         # TODO: We are going to let the user set this up in a future iteration
         self.toolbar = self.iface.addToolBar(u'GeoCoder_AdresseVask')
         self.toolbar.setObjectName(u'GeoCoder_AdresseVask')
+        
+        self.dlg.lineEdit.clear()
+        self.dlg.pushButton_2.clicked.connect(self.select_output_file)
+        
+        self.dlg.pushButton.clicked.connect(self.geocode)
+        
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -183,30 +189,49 @@ class GeoCoder_AdresseVask:
     def layerCol(self, layer):
         self.dlg.mFieldComboBox.setLayer(layer)
         
+    def select_output_file(self):
+        filename = QFileDialog.getSaveFileName(self.dlg, "Gem fil","", '*.shp')
+        self.dlg.lineEdit.setText(filename)
+        
+    def geocode(self):
+        
+        self.dlg.pushButton.setDisabled( True )
+        print "Geocode"
+        
+        layer = self.dlg.mMapLayerComboBox.currentLayer()
+        layer_field_index = layer.fieldNameIndex(self.dlg.mFieldComboBox.currentField())
+
+        # prepare
+        features = processing.features(layer)
+        
+        count = 0
+        total = 0
+        for f in features:
+            total +=1
+            
+        features = processing.features(layer)
+        
+
+        for f in features:
+            count += 1
+            self.dlg.progressBar.setValue(int(100 * total / count))
+            print int(100 * count / total)
+            #print f.attributes()[layer_field_index]
         
     def run(self):
         """Run method that performs all the real work"""
-		
-		#connecting layerCombo with fieldCombo and setting first layer
+        
+        #connecting layerCombo with fieldCombo and setting first layer
         vlayer = self.dlg.mMapLayerComboBox.currentLayer()
         self.dlg.mFieldComboBox.setLayer(vlayer)
         self.dlg.mMapLayerComboBox.layerChanged.connect(self.layerCol)
+        
+        self.dlg.lineEdit.clear()
+        
+        self.dlg.pushButton.setDisabled( False )
+        self.dlg.progressBar.setValue(0)
 
         # show the dialog
         self.dlg.show()
-        # Run the dialog event loop
-        result = self.dlg.exec_()
-        # See if OK was pressed
-        
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-			
-            layer = self.dlg.mMapLayerComboBox.currentLayer()
-            layer_field_index = layer.fieldNameIndex(self.dlg.mFieldComboBox.currentField())
+            
 
-            # prepare
-            features = processing.features(layer)
-
-            for f in features:
-                print f.attributes()[layer_field_index]
